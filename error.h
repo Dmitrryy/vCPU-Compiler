@@ -1,6 +1,7 @@
 #ifndef STACK_2_ERROR_H
 #define STACK_2_ERROR_H
 
+
 #define NEG_SIZE_STACK 6
 
 #define STACK_NOT_FOUND 111
@@ -10,5 +11,6 @@
 
 #define ERROR_CHANGE_PROTECT 401
 #define ERROR_CHANGE_PROTECT_IN_CR 402
+
 
 #endif //STACK_2_ERROR_H

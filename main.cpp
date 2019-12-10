@@ -1,19 +1,15 @@
 #pragma warning(disable : 4996)
 #include "CPUclass.h"
 
-int main() {
+int main(int argc, char* argv[]) {
 
 	CPU cd;
 
-	cd.preparer("sours_bin.bin");
-
-	/*if (cd.m_time_change > cd.m_time_compl) {
-
-		Compl("sourse.txt", "sours_bin.bin");
-		cd.preparer("sours_bin.bin");
-	}*/
+	cd.preparer(argv[1]);
 
 	cd.executor();
+
+	system("pause");
 
 	return 0;
 	

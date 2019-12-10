@@ -88,11 +88,11 @@ int CPU::executor() {
 
 	for (int stat = 0 ; stat != 26; m_now_cmd++) {
 
-		if (instr[m_now_cmd].CMD_flag == CMD¹) {
+		if (instr[m_now_cmd].CMD_flag == _CMD_) {
 
 			switch (instr[m_now_cmd].CMD_code) {
 			case CMD_push: 
-				if (instr[m_now_cmd].arg_flag == REG¹) {
+				if (instr[m_now_cmd].arg_flag == _REG_) {
 					switch (instr[m_now_cmd].integer) {
 					case REG_ax:
 						st->Push(ax);
@@ -129,9 +129,12 @@ int CPU::executor() {
 				}
 				break;
 		
-			case CMD_sub:
-				st->Push(-(st->Pop()) + st->Pop());
-				break;
+			case CMD_sub: {
+                double a = st->Pop();
+                double b = st->Pop();
+                st->Push(b - a);
+                break;
+            }
 
 			case CMD_add:
 				st->Push(st->Pop() + st->Pop());
@@ -163,7 +166,7 @@ int CPU::executor() {
 				break;
 
 			case CMD_out:
-				if (instr[m_now_cmd].arg_flag == REG¹)
+				if (instr[m_now_cmd].arg_flag == _REG_)
 					switch (instr[m_now_cmd].integer) {
 					case REG_ax:
 						std::cout << ax << endl;
