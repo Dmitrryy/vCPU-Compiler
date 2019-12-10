@@ -56,17 +56,20 @@ public: Compiler() :
 
 int Compiler::read(const char* fname_in) {
 
-	std::ifstream file(fname_in);
+	ifstream file(fname_in);
+
+    if (!file.is_open())
+        assert(0);
 	
-	file.seekg(0, std::ios::end);
+	file.seekg(0, ios::end);
 
 	m_len = file.tellg();
 	assert(m_len != 0);
 	
-	file.seekg(0, std::ios::beg);
+	file.seekg(0, ios::beg);
 
 	m_str = new char [(m_len + 1) * sizeof(char)]();
-	assert(m_str != 0);
+	assert(m_str != NULL);
 
 	file.getline(m_str, m_len, '\0');
 
@@ -184,19 +187,19 @@ int Compiler::parse() {
 			if (result->second == CMD_func) {
 
 				func.emplace(m_point_str[i + 1], m_nom_cmd);
-				m_lex[i].flag = SKIP№;
-				m_lex[++i].flag = SKIP№;
+				m_lex[i].flag = _SKIP_;
+				m_lex[++i].flag = _SKIP_;
 			}
 			//фиксация вызова функции
 			else if (result->second == CMD_call) {
 
-				m_lex[i] = { Func№, (int64_t)m_nom_cmd };
-				m_lex[++i] = { SKIP№, 0 };
+				m_lex[i] = { _Func_, (int64_t)m_nom_cmd };
+				m_lex[++i] = { _SKIP_, 0 };
 
 				m_nom_cmd++;
 			}
 			else {
-				m_lex[i] = { CMD№, result->second };
+				m_lex[i] = { _CMD_, result->second };
 
 				if (result->second == CMD_begin)
 					m_progma_begin = m_nom_cmd;
@@ -206,7 +209,7 @@ int Compiler::parse() {
 		}
 
 		else if ((result = REG.find(m_point_str[i])) != REG.end())
-			m_lex[i] = { REG№, result->second };
+			m_lex[i] = { _REG_, result->second };
 
 		else {
 			char* mb_label = strstr(m_point_str[i], ":"); 
@@ -218,22 +221,22 @@ int Compiler::parse() {
 					for (int k = 0; m_point_str[i][k] != '\0'; k++)
 						sum = sum * 10 + m_point_str[i][k] - '0';
 
-					m_lex[i] = { NUM№, sum };
+					m_lex[i] = { _NUM_, sum };
 					sum = 0;
 				}
-				else assert(0); //встретилась неизвестная команда
+				else {assert(0); cout << i;} //встретилась неизвестная команда
 			}
 
 			else if (*(mb_label - 1) == '\0') {
 
-				m_lex[i] = { Label_arg№, i };
+				m_lex[i] = { _Label_arg_, i };
 			}
 			else if (*(mb_label + 1) == '\0') {
 				*(mb_label) = '\0';
 			
 				Label_cr.emplace(m_point_str[i], m_nom_cmd);
 
-				m_lex[i] = { Label_create№, (int64_t)(m_nom_cmd) };
+				m_lex[i] = { _Label_create_, (int64_t)(m_nom_cmd) };
 				m_nom_label++;
 			}
 			else assert(0); //встретилось обозначение метки (":")
@@ -247,28 +250,28 @@ int Compiler::parse() {
 	uint64_t sit_begin = 0, sit_end = 0;
 
 	for (int i = 0; i < m_len; i++) {
-		if (m_lex[i].flag == Label_arg№) {
+		if (m_lex[i].flag == _Label_arg_) {
 
 			auto result = Label_cr.find(m_point_str[i] + 1);
 
 			if (result != Label_cr.end())
-				m_lex[i] = { Label_resolv№, result->second };
+				m_lex[i] = { _Label_resolv_, result->second };
 
 			else assert(0); //проверить на ошибку в написании и существует ли вообще
 			                //метка под таким именем 
 		}
-		else if (m_lex[i].flag == Func№) {
+		else if (m_lex[i].flag == _Func_) {
 
 			auto result = func.find(m_point_str[i + 1]);
 			//cout << i << "  " << m_point_str[i + 1] << endl;
 
 			if (result != func.end())
-				m_lex[i] = { Func_resolv№, result->second };
+				m_lex[i] = { _Func_resolv_, result->second };
 
 			else assert(0); //проверить на ошибку в написании и существует ли вообще
 			                //обьявление (тело) функции
 		}
-		if (m_lex[i].flag == CMD№ && m_lex[i].integer == CMD_begin) {
+		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_begin) {
 
 			if (sit_begin != 0)
 				assert(0); //недопустимо x2 и больше begin!
@@ -276,7 +279,7 @@ int Compiler::parse() {
 			sit_begin = i + 1;
 		}
 
-		if (m_lex[i].flag == CMD№ && m_lex[i].integer == CMD_end) {
+		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_end) {
 
 			if (sit_end != 0)
 				assert(0); //недопустимо х2 и больше end!
@@ -308,23 +311,23 @@ int Compiler::semantic_analysis() {
 
 	for (int i = 0; i < m_len; i++) {
 
-		if (m_lex[i].flag == CMD№) {
+		if (m_lex[i].flag == _CMD_) {
 
-			m_instr[k].CMD_flag = CMD№;
+			m_instr[k].CMD_flag = _CMD_;
 			m_instr[k].CMD_code = cod = m_lex[i].integer;
 
 			//комманды без параметра
 			if (search_code(cod, CMD_with_NULL, NOM_CMD_WITH_NULL))
-				m_instr[k].arg_flag = NULL№;
+				m_instr[k].arg_flag = _NULL_;
 
 			//команды с параметром REG
 			else if (search_code(cod, CMD_with_REG, NOM_CMD_WITH_REG)) {
 
-				m_instr[k].arg_flag = REG№;
+				m_instr[k].arg_flag = _REG_;
 				i++;
 				assert(i < m_len);
 
-				if (m_lex[i].flag == REG№)
+				if (m_lex[i].flag == _REG_)
 					m_instr[k].integer = m_lex[i].integer;
 				else 
 					assert(0); //после команды ожидается лексема с флагом REG
@@ -336,14 +339,14 @@ int Compiler::semantic_analysis() {
 				i++;
 				assert(i < m_len); //что то пошло не так...
 
-				if (m_lex[i].flag == REG№) {
+				if (m_lex[i].flag == _REG_) {
 
-					m_instr[k].arg_flag = REG№;
+					m_instr[k].arg_flag = _REG_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
-				else if (m_lex[i].flag == NUM№) {
+				else if (m_lex[i].flag == _NUM_) {
 
-					m_instr[k].arg_flag = NUM№;
+					m_instr[k].arg_flag = _NUM_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
 				else assert(0); //после команды с параметром REG или NUM 
@@ -353,9 +356,9 @@ int Compiler::semantic_analysis() {
 			else if (search_code(cod, CMD_with_Label, NOM_CMD_WITH_LABEL)) {
 
 				i++;
-				if (m_lex[i].flag == Label_resolv№) {
+				if (m_lex[i].flag == _Label_resolv_) {
 
-					m_instr[k].arg_flag = Label_resolv№;
+					m_instr[k].arg_flag = _Label_resolv_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
 				else assert(0); //после команды прыжка идет не метка! куда прыгать?
@@ -364,7 +367,7 @@ int Compiler::semantic_analysis() {
 			k++;
 		}
 	
-		else if (m_lex[i].flag == Label_create№ || m_lex[i].flag == SKIP№) {
+		else if (m_lex[i].flag == _Label_create_ || m_lex[i].flag == _SKIP_) {
 			//здесь и должно быть пусто
 			//
 			//*пропускаются точки создания метки
@@ -373,11 +376,11 @@ int Compiler::semantic_analysis() {
 			//*пропускаются другие лексемы, отмеченные как SKIP№
 		}
 		//инструкция по вызову функции
-		else if (m_lex[i].flag == Func_resolv№) {
+		else if (m_lex[i].flag == _Func_resolv_) {
 
-			m_instr[k].CMD_flag = CMD№;
+			m_instr[k].CMD_flag = _CMD_;
 			m_instr[k].CMD_code = CMD_call;
-			m_instr[k].arg_flag = Func_resolv№;
+			m_instr[k].arg_flag = _Func_resolv_;
 
 			m_instr[k].integer  = m_lex[i].integer;
 
