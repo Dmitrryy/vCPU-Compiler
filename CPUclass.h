@@ -280,7 +280,7 @@ void CPU::dump() {
     cout << "=========================================================" << endl;
 
     if (m_nom_cmd > 0) {
-        cout << "¹       CMD_flag          " << "CMD_code          " << "arg_flag          " << "arg" << endl;
+        cout << "â„–       CMD_flag          " << "CMD_code          " << "arg_flag          " << "arg" << endl;
 
         for (int i = 0; i < m_nom_cmd; i++)
             cout << "[" << setw(4) << left << i << "]   " << instr[i] << endl;
