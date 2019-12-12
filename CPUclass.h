@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vCPU_errors.h"
+
 #include <cassert>
 #include <cstring>
 #include <cstdint>
@@ -14,17 +16,18 @@
 class CPU {
 public: uint64_t m_nom_cmd;
 public: time_t m_time_compl;
-public: time_t m_time_change;
 public: uint64_t m_now_cmd;
 public: const char* m_fname;
 
 public: Instruction* instr;
 
+public: void OK();
+public: void dump();
+
 private: double comp;
 
+private: int m_stat;
 public: double ax, bx, cx, dx;
-
-private: time_t time_change_file();
 
 public: int preparer(const char* fname);
 public: int executor();
@@ -32,56 +35,52 @@ public: int executor();
 	  CPU() :
 		  m_nom_cmd(0),
 		  m_time_compl(0),
-		  m_time_change(0),
 		  m_now_cmd(0),
 		  m_fname(NULL),
 		  instr(NULL),
 		  comp(0),
+		  m_stat(0),
 		  ax(0), bx(0), cx(0), dx(0)
 	  {};
 };
-
-
-time_t CPU::time_change_file() {
-
-	struct _stat st = {};
-	_stat("sourse.txt", &st);
-
-	return st.st_mtime;
-}
 
 int CPU::preparer(const char* fname) {
 
 	m_fname = fname;
 	std::ifstream in(m_fname);
 
-	if (!in.is_open())
-		assert(0);
+	if (!in.is_open()) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+
+        cout << endl << "failed to open a file with the name:   " << m_fname << endl;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+        exit(FAILED_OPEN_FILE);
+    }
 
 	in.read((char*)&m_time_compl, sizeof(time_t));
 	in.read((char*)&m_nom_cmd, sizeof(uint64_t));
 	in.read((char*)&m_now_cmd, sizeof(uint64_t));
 
-	in.close();
+    instr = new Instruction[m_nom_cmd]();
+    if (instr == NULL) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
 
-	m_time_change = time_change_file();
+        cout << endl << "failed to allocate memory for instructions" << endl;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+        exit(F_ALLOCATE_MEMORY);
+    }
+
+    in.read((char*)instr, sizeof(Instruction) * m_nom_cmd);
+
+
+	in.close();
 
 	return 0;
 }
 
 int CPU::executor() {
-
-	instr = new Instruction[m_nom_cmd]();
-	if (instr == NULL)
-		assert(0);
-
-	std::ifstream in(m_fname);
-	if (!in.is_open())
-		assert(0);
-
-	in.seekg(sizeof(time_t) + sizeof(uint64_t) * 2, std::ios::beg);
-
-    in.read((char*)instr, sizeof(Instruction) * m_nom_cmd);
 
 	CREATE_STACK(double, st, 4);
 	CREATE_STACK(uint64_t, m_ret, 100);
@@ -248,12 +247,54 @@ int CPU::executor() {
 			} //end switch
 		}
 		else {
-		
-			//for (int h = 0; h < m_nom_cmd; h++)
-				//cout << h << "  " << (int)instr[h].CMD_flag << "  " << (int)instr[h].CMD_code << "  " << (int64_t)instr[h].arg_flag << "  " << instr[h].integer << endl;
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
 
-			assert(0);
+		    cout << "runtime error" << endl;
+
+		    dump();
+
+			exit(1);
 		}
 	}//end for( ; ; )
 	return 0;
+}
+
+void CPU::dump() {
+
+    HANDLE cons = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    SetConsoleTextAttribute(cons, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+
+    cout << endl;
+    cout << "File name:  " << m_fname << endl;
+    cout << "=========================================================" << endl;
+    cout << "|| " << "time of the last compile          = " << setw(16) << left << m_time_compl << "||" << endl;
+    cout << "|| " << "number of commands                = " << setw(16) << left << m_nom_cmd << "||" << endl;
+    cout << "|| " << "the number of the current command = " << setw(16) << left << m_now_cmd << "||" << endl;
+    cout << "||                                                     ||" << endl;
+    cout << "|| " << "REG:                                                " << "||" << endl;
+    cout << "|| " << "ax = " << setw(16) << left << ax << "                               ||" << endl;
+    cout << "|| " << "bx = " << setw(16) << left << bx << "                               ||" << endl;
+    cout << "|| " << "cx = " << setw(16) << left << cx << "                               ||" << endl;
+    cout << "|| " << "dx = " << setw(16) << left << dx << "                               ||" << endl;
+    cout << "=========================================================" << endl;
+
+    if (m_nom_cmd > 0) {
+        cout << "¹       CMD_flag          " << "CMD_code          " << "arg_flag          " << "arg" << endl;
+
+        for (int i = 0; i < m_nom_cmd; i++)
+            cout << "[" << setw(4) << left << i << "]   " << instr[i] << endl;
+    }
+    cout << endl << endl;
+
+    SetConsoleTextAttribute(cons, 0 | 15);
+
+    system("pause");
+}
+
+void CPU::OK() {
+
+
+
+
 }

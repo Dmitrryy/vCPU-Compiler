@@ -13,6 +13,15 @@ struct Instruction {
 	uint8_t arg_flag;
 };
 
+ostream& operator << (ostream& out, Instruction str) {
+
+    cout << setw(16) << left << (int)str.CMD_flag << "  " <<
+    setw(16) << left << (int)str.CMD_code << "  " <<
+    setw(16) << left << (int)str.arg_flag << "  " << str.integer;
+
+    return out;
+}
+
 //убрать static после разделения на 2 проекта!!!
 //не использовать код == 26!!! все пойдет не туда!
 map <string, int> CMD = { {"push"  , 9 },
@@ -95,16 +104,16 @@ map <string, int> REG = { {"ax", 1},
 
 
 
-#define NOM_CMD_WITH_NULL 10		         //sub, add, mul, div, dump, end, dup, sqrt, ret, begin
+#define NOM_CMD_WITH_NULL 10	      //sub, add, mul, div, dump, end, dup, sqrt, ret, begin
 int CMD_with_NULL[NOM_CMD_WITH_NULL] = { 11,  12,  13,  14,   17,  18,  23,   29,  30, 28 };
 
-#define NOM_CMD_WITH_REG 2                 //pop, in
+#define NOM_CMD_WITH_REG 2          //pop, in
 int CMD_with_REG[NOM_CMD_WITH_REG] = { 10, 15 };
 
-#define NOM_CMD_WITH_REGandNUM 2                       //push, out
+#define NOM_CMD_WITH_REGandNUM 2                //push, out
 int CMD_with_REGandNUM[NOM_CMD_WITH_REGandNUM] = {   9, 16 };
 
-#define NOM_CMD_WITH_LABEL 4				   //jmp, jaz, jmp, jz
+#define NOM_CMD_WITH_LABEL 4	        //jmp, jaz, jmp, jz
 int CMD_with_Label[NOM_CMD_WITH_LABEL] = { 19,  20,  21, 22 };
 
 

@@ -8,7 +8,7 @@
 #define PAGE_SIZE 4096
 
 ///отключает защиту
-#define DISABLE_CHECK_PROTECT
+//#define DISABLE_CHECK_PROTECT
 
 #include <cstddef>
 #include <iostream>
