@@ -12,10 +12,7 @@
 struct Lexem {
 	int flag;
 
-	union {
-		int64_t integer;
-		double floating;
-	};
+	int64_t integer;
 };
 
 class Compiler {
@@ -89,9 +86,9 @@ int Compiler::output(const char* fname_out) {
 
 	m_progma_begin++;
 
-	out.write((char*)&sec, sizeof(time_t));             //время компеляции
-	out.write((char*)&m_len, sizeof(uint64_t));			//кол-во команд
-	out.write((char*)&m_progma_begin, sizeof(uint64_t));//номер команды начала
+	out.write((char*)&sec, sizeof(time_t));                //РІСЂРµРјСЏ РєРѕРјРїРёР»СЏС†РёРё
+	out.write((char*)&m_len, sizeof(uint64_t));		   //РєРѕР»-РІРѕ РєРѕРјР°РЅРґ
+	out.write((char*)&m_progma_begin, sizeof(uint64_t));//РЅРѕРјРµСЂ РєРѕРјР°РЅРґС‹ РЅР°С‡Р°Р»Р°
 
 	for (int i = 0; i < m_len; i++)
 		out.write((char*)(m_instr + i), sizeof(Instruction));
@@ -112,7 +109,7 @@ int Compiler::search_comments() {
 
 	for (int i = 0; i < m_len; i++) {
 
-		if (m_str[i] == '*' && stat == 1) {
+		if (m_str[i] == '*' && stat == 1) {                //РєРѕРјРјРµРЅС‚Р°СЂРёРё С‚РёРїР°: * . . . *
 			m_str[i] = ' ';
 			stat = 0;
 		}
@@ -122,10 +119,18 @@ int Compiler::search_comments() {
 
 		if (stat == 1)
 			m_str[i] = ' ';
+
+		if (stat == 0 && i + 1 < m_len)                     //РєРѕРјРјРµРЅС‚Р°СЂРёРё РІРёРґР°: //
+		    if (m_str[i] == '/' && m_str[i + 1] == '/') {
+
+		        for ( ; i < m_len && m_str[i] != '\n'; i++)
+		            m_str[i] = ' ';
+		    }
 	}
 
+
 	if (stat == 1)
-		assert(0); //не обнаружена закрывающая '*'
+		assert(0); //РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅР° Р·Р°РєСЂС‹РІР°СЋС‰Р°СЏ '*'
 
 	return 0;
 }
@@ -144,13 +149,11 @@ int Compiler::processing() {
 	int i = 1;
 	for ( ; (tmp = strtok(NULL, " \n\t\r")) != NULL; i++) {
 
-
-
 		if (i % 10 == 0 && i != 0) {
 			char** tmp_str = (char**)realloc(m_point_str, (i + 10) * sizeof(char*));
 			if (tmp_str == NULL) {
 				delete[] m_point_str;
-				assert(0); //ошибка realloc
+				assert(0); //РѕС€РёР±РєР° realloc
 			}
 			m_point_str = tmp_str;
 			}
@@ -163,8 +166,6 @@ int Compiler::processing() {
 }
 
 int Compiler::search_code(const int code, const int* data, uint64_t nelem) {
-
-	int stat = 0;
 
 	for (uint64_t i = 0; i < nelem; i++) {
 		if (code == data[i])
@@ -183,14 +184,14 @@ int Compiler::parse() {
 		auto result = CMD.find(m_point_str[i]);
 
 		if (result != CMD.end()) {
-			//фиксация обьявления функции
+			//С„РёРєСЃР°С†РёСЏ РѕР±СЊСЏРІР»РµРЅРёСЏ С„СѓРЅРєС†РёРё
 			if (result->second == CMD_func) {
 
 				func.emplace(m_point_str[i + 1], m_nom_cmd);
 				m_lex[i].flag = _SKIP_;
 				m_lex[++i].flag = _SKIP_;
 			}
-			//фиксация вызова функции
+			//С„РёРєСЃР°С†РёСЏ РІС‹Р·РѕРІР° С„СѓРЅРєС†РёРё
 			else if (result->second == CMD_call) {
 
 				m_lex[i] = { _Func_, (int64_t)m_nom_cmd };
@@ -224,7 +225,7 @@ int Compiler::parse() {
 					m_lex[i] = { _NUM_, sum };
 					sum = 0;
 				}
-				else {assert(0); cout << i;} //встретилась неизвестная команда
+				else {assert(0); cout << i;} //РІСЃС‚СЂРµС‚РёР»Р°СЃСЊ РЅРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР°
 			}
 
 			else if (*(mb_label - 1) == '\0') {
@@ -239,9 +240,9 @@ int Compiler::parse() {
 				m_lex[i] = { _Label_create_, (int64_t)(m_nom_cmd) };
 				m_nom_label++;
 			}
-			else assert(0); //встретилось обозначение метки (":")
-							//но в неправильном написании
-							//до и после метки должен быть разделительный знак
+			else assert(0); //РІСЃС‚СЂРµС‚РёР»РѕСЃСЊ РѕР±РѕР·РЅР°С‡РµРЅРёРµ РјРµС‚РєРё (":")
+							//РЅРѕ РІ РЅРµРїСЂР°РІРёР»СЊРЅРѕРј РЅР°РїРёСЃР°РЅРёРё
+							//РґРѕ Рё РїРѕСЃР»Рµ РјРµС‚РєРё РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ СЂР°Р·РґРµР»РёС‚РµР»СЊРЅС‹Р№ Р·РЅР°Рє
 		}
 		
 		//else assert(0);
@@ -249,7 +250,10 @@ int Compiler::parse() {
 
 	uint64_t sit_begin = 0, sit_end = 0;
 
+    //РІС‚РѕСЂРѕР№ РѕР±С…РѕРґ
 	for (int i = 0; i < m_len; i++) {
+
+	    //СЂР°Р·СЂРµС€РµРЅРёРµ РјРµС‚РѕРє
 		if (m_lex[i].flag == _Label_arg_) {
 
 			auto result = Label_cr.find(m_point_str[i] + 1);
@@ -257,9 +261,10 @@ int Compiler::parse() {
 			if (result != Label_cr.end())
 				m_lex[i] = { _Label_resolv_, result->second };
 
-			else assert(0); //проверить на ошибку в написании и существует ли вообще
-			                //метка под таким именем 
+			else assert(0); //РїСЂРѕРІРµСЂРёС‚СЊ РЅР° РѕС€РёР±РєСѓ РІ РЅР°РїРёСЃР°РЅРёРё Рё СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РІРѕРѕР±С‰Рµ
+			                //РјРµС‚РєР° РїРѕРґ С‚Р°РєРёРј РёРјРµРЅРµРј 
 		}
+		//СЂР°Р·СЂРµС€РµРЅРёРµ РІС‹Р·РѕРІР° С„СѓРЅРєС†РёРё
 		else if (m_lex[i].flag == _Func_) {
 
 			auto result = func.find(m_point_str[i + 1]);
@@ -268,13 +273,14 @@ int Compiler::parse() {
 			if (result != func.end())
 				m_lex[i] = { _Func_resolv_, result->second };
 
-			else assert(0); //проверить на ошибку в написании и существует ли вообще
-			                //обьявление (тело) функции
+			else assert(0); //РїСЂРѕРІРµСЂРёС‚СЊ РЅР° РѕС€РёР±РєСѓ РІ РЅР°РїРёСЃР°РЅРёРё Рё СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РІРѕРѕР±С‰Рµ
+			                //РѕР±СЊСЏРІР»РµРЅРёРµ (С‚РµР»Рѕ) С„СѓРЅРєС†РёРё
 		}
+
 		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_begin) {
 
 			if (sit_begin != 0)
-				assert(0); //недопустимо x2 и больше begin!
+				assert(0); //РЅРµРґРѕРїСѓСЃС‚РёРјРѕ x2 Рё Р±РѕР»СЊС€Рµ begin!
 
 			sit_begin = i + 1;
 		}
@@ -282,19 +288,19 @@ int Compiler::parse() {
 		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_end) {
 
 			if (sit_end != 0)
-				assert(0); //недопустимо х2 и больше end!
+				assert(0); //РЅРµРґРѕРїСѓСЃС‚РёРјРѕ С…2 Рё Р±РѕР»СЊС€Рµ end!
 
 			sit_end = i + 1;
 		}
 	}
 	if (sit_begin == 0)
-		assert(0); //необнаружен begin
+		assert(0); //РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅ begin
 
 	if (sit_end == 0)
-		assert(0); //необнаружен end
+		assert(0); //РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅ end
 
 	if (sit_begin > sit_end)
-		assert(0); //begin находится после end
+		assert(0); //begin РЅР°С…РѕРґРёС‚СЃСЏ РїРѕСЃР»Рµ end
 
 	//for (int l = 0; l < m_len; l++)
 		//cout << l << "   " << m_lex[l].flag << "  " << m_lex[l].integer << endl;
@@ -316,11 +322,11 @@ int Compiler::semantic_analysis() {
 			m_instr[k].CMD_flag = _CMD_;
 			m_instr[k].CMD_code = cod = m_lex[i].integer;
 
-			//комманды без параметра
+			//РєРѕРјРјР°РЅРґС‹ Р±РµР· РїР°СЂР°РјРµС‚СЂР°
 			if (search_code(cod, CMD_with_NULL, NOM_CMD_WITH_NULL))
 				m_instr[k].arg_flag = _NULL_;
 
-			//команды с параметром REG
+			//РєРѕРјР°РЅРґС‹ СЃ РїР°СЂР°РјРµС‚СЂРѕРј REG
 			else if (search_code(cod, CMD_with_REG, NOM_CMD_WITH_REG)) {
 
 				m_instr[k].arg_flag = _REG_;
@@ -330,14 +336,14 @@ int Compiler::semantic_analysis() {
 				if (m_lex[i].flag == _REG_)
 					m_instr[k].integer = m_lex[i].integer;
 				else 
-					assert(0); //после команды ожидается лексема с флагом REG
+					assert(0); //РїРѕСЃР»Рµ РєРѕРјР°РЅРґС‹ РѕР¶РёРґР°РµС‚СЃСЏ Р»РµРєСЃРµРјР° СЃ С„Р»Р°РіРѕРј REG
 
 			}
-			//команды с параметром REG или NUM
+			//РєРѕРјР°РЅРґС‹ СЃ РїР°СЂР°РјРµС‚СЂРѕРј REG РёР»Рё NUM
 			else if (search_code(cod, CMD_with_REGandNUM, NOM_CMD_WITH_REGandNUM)) {
 
 				i++;
-				assert(i < m_len); //что то пошло не так...
+				assert(i < m_len); //С‡С‚Рѕ С‚Рѕ РїРѕС€Р»Рѕ РЅРµ С‚Р°Рє...
 
 				if (m_lex[i].flag == _REG_) {
 
@@ -349,10 +355,10 @@ int Compiler::semantic_analysis() {
 					m_instr[k].arg_flag = _NUM_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
-				else assert(0); //после команды с параметром REG или NUM 
-								//ни первое, ни второе
+				else assert(0); //РїРѕСЃР»Рµ РєРѕРјР°РЅРґС‹ СЃ РїР°СЂР°РјРµС‚СЂРѕРј REG РёР»Рё NUM 
+								//РЅРё РїРµСЂРІРѕРµ, РЅРё РІС‚РѕСЂРѕРµ
 			}
-			//Команды "прыжка" (jmp и тому подобное)
+			//РљРѕРјР°РЅРґС‹ "РїСЂС‹Р¶РєР°" (jmp Рё С‚РѕРјСѓ РїРѕРґРѕР±РЅРѕРµ)
 			else if (search_code(cod, CMD_with_Label, NOM_CMD_WITH_LABEL)) {
 
 				i++;
@@ -361,21 +367,24 @@ int Compiler::semantic_analysis() {
 					m_instr[k].arg_flag = _Label_resolv_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
-				else assert(0); //после команды прыжка идет не метка! куда прыгать?
+				else assert(0); //РїРѕСЃР»Рµ РєРѕРјР°РЅРґС‹ РїСЂС‹Р¶РєР° РёРґРµС‚ РЅРµ РјРµС‚РєР°! РєСѓРґР° РїСЂС‹РіР°С‚СЊ?
 
 			}
 			k++;
 		}
 	
 		else if (m_lex[i].flag == _Label_create_ || m_lex[i].flag == _SKIP_) {
-			//здесь и должно быть пусто
+			//Р·РґРµСЃСЊ Рё РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
 			//
-			//*пропускаются точки создания метки
-			//(т.к. в команде прыжка уже прописано куда прыгвть)
+			//*РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ С‚РѕС‡РєРё СЃРѕР·РґР°РЅРёСЏ РјРµС‚РєРё
+			//(С‚.Рє. РІ РєРѕРјР°РЅРґРµ РїСЂС‹Р¶РєР° СѓР¶Рµ РїСЂРѕРїРёСЃР°РЅРѕ РєСѓРґР° РїСЂС‹РіРІС‚СЊ)
 			//
-			//*пропускаются другие лексемы, отмеченные как SKIP№
+			//*РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р»РµРєСЃРµРјС‹ СЃ РЅР°Р·РІР°РЅРёСЏРјРё С„СѓРЅРєС†РёР№
+			//(call СѓР¶Рµ СЃРІСЏР·Р°РЅ СЃ С‚РµР»РѕРј РІС‹Р·С‹РІР°РµРјРѕР№ С„СѓРЅРєС†РёРё func)
+			//
+			//*РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ РґСЂСѓРіРёРµ Р»РµРєСЃРµРјС‹, РѕС‚РјРµС‡РµРЅРЅС‹Рµ РєР°Рє SKIPв„–
 		}
-		//инструкция по вызову функции
+		//РёРЅСЃС‚СЂСѓРєС†РёСЏ РїРѕ РІС‹Р·РѕРІСѓ С„СѓРЅРєС†РёРё
 		else if (m_lex[i].flag == _Func_resolv_) {
 
 			m_instr[k].CMD_flag = _CMD_;
@@ -387,7 +396,7 @@ int Compiler::semantic_analysis() {
 			k++;
 		}
 		else
-			assert(0); //встречен неизвестный флаг лексемы
+			assert(0); //РІСЃС‚СЂРµС‡РµРЅ РЅРµРёР·РІРµСЃС‚РЅС‹Р№ С„Р»Р°Рі Р»РµРєСЃРµРјС‹
 	}
 	m_len = k;
 
