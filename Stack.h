@@ -32,10 +32,10 @@
  */
 template <typename T>
 class Stack {
-private: T* m_data = NULL;
-private: int m_size = 0;
-private: int m_n_now = 0;
-private: int m_nom_page = 0;
+private: T* m_data;
+private: int m_size;
+private: int m_n_now;
+private: int m_nom_page;
 
 public: void OK(int stat);
 
@@ -45,6 +45,13 @@ public: void Create(int size);
 public: void Destroy();
 public: void Push(T value);
 public: T Pop();
+
+    Stack():
+    m_data(NULL),
+    m_size(0),
+    m_n_now(0),
+    m_nom_page(0)
+    {};
 };
 
 

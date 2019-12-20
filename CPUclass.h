@@ -21,7 +21,7 @@ public: const char* m_fname;
 
 public: Instruction* instr;
 
-public: void OK();
+//public: void OK();
 public: void dump();
 
 private: double comp;
@@ -44,6 +44,7 @@ public: int executor();
 	  {};
 };
 
+//подготовка (считывание всех инструкций)
 int CPU::preparer(const char* fname) {
 
 	m_fname = fname;
@@ -290,11 +291,4 @@ void CPU::dump() {
     SetConsoleTextAttribute(cons, 0 | 15);
 
     system("pause");
-}
-
-void CPU::OK() {
-
-
-
-
 }
