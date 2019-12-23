@@ -44,6 +44,7 @@ public: void Dump();
 public: void Create(int size);
 public: void Destroy();
 public: void Push(T value);
+public: T Top();
 public: T Pop();
 
     Stack():

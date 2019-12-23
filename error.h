@@ -4,10 +4,11 @@
 
 #define NEG_SIZE_STACK 6
 
-#define STACK_NOT_FOUND 111
+#define STACK_NOT_FOUND  111
 #define STACK_IS_CREATED 121
-#define REACH_MIN 41
-#define REACH_MAX 42
+#define REACH_MIN        41
+#define STACK_IS_EMPTY   42
+#define REACH_MAX        51
 
 #define ERROR_CHANGE_PROTECT 401
 #define ERROR_CHANGE_PROTECT_IN_CR 402

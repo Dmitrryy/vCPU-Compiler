@@ -4,23 +4,12 @@
 using namespace std;
 
 struct Instruction {
-	union {
-		int64_t integer;
-		double floating;
-	};
+    int64_t integer;
+
 	uint16_t CMD_flag;
 	uint8_t CMD_code;
 	uint8_t arg_flag;
 };
-
-ostream& operator << (ostream& out, Instruction str) {
-
-    cout << setw(16) << left << (int)str.CMD_flag << "  " <<
-    setw(16) << left << (int)str.CMD_code << "  " <<
-    setw(16) << left << (int)str.arg_flag << "  " << str.integer;
-
-    return out;
-}
 
 //убрать static после разделения на 2 проекта!!!
 //не использовать код == 26!!! все пойдет не туда!

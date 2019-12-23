@@ -139,6 +139,34 @@ T Stack<T>::Pop() {
 	return ret;
 }
 
+template <typename T>
+T Stack<T>::Top() {
+
+#ifndef DISABLE_CHECK_PROTECT
+    unsigned long h = 0;
+    VirtualProtect(this, PAGE_SIZE * m_nom_page, PAGE_READWRITE, &h);
+    if (h != PAGE_READONLY)
+        OK(ERROR_CHANGE_PROTECT);
+#endif
+
+    OK(0);
+
+    if (m_n_now <= 0)
+        OK(STACK_IS_EMPTY);
+
+    T ret = m_data[m_n_now - 1];
+
+    OK(0);
+
+#ifndef DISABLE_CHECK_PROTECT
+    VirtualProtect(this, PAGE_SIZE * m_nom_page, PAGE_READONLY, &h);
+    if (h != PAGE_READWRITE)
+        OK(ERROR_CHANGE_PROTECT);
+#endif
+
+    return ret;
+}
+
 /**
  * функция, проверяющая правильность работы Stack
  *
@@ -156,6 +184,11 @@ void Stack<T>::OK(int stat) {
 		}
 	}
 	else {
+	    if (stat == STACK_IS_EMPTY) {
+            cout << endl << "\"Top\" function is used when Stack is empty" << endl;
+            Dump();
+            terminate(STACK_IS_EMPTY);
+	    }
 		if (stat == NEG_SIZE_STACK) {
 			cout << endl << "In the stack creation function (CREATE_STACK(T, name, size);) pass a negative size" << endl
 				<< "Cannot create a stack of negative size" << endl;
