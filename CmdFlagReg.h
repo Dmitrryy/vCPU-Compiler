@@ -12,9 +12,9 @@ struct Instruction {
 	uint8_t arg_flag;
 };
 
-//убрать static после разделения на 2 проекта!!!
+
 //не использовать код == 26!!! все пойдет не туда!
-static map <string, int> CMD = { {"push"  , 9 },
+map <string, int> CMD = { {"push"  , 9 },
                           {"pop"   , 10},
                           {"sub"   , 11}, //вычитание
                           {"add"   , 12}, //сложение
@@ -37,7 +37,7 @@ static map <string, int> CMD = { {"push"  , 9 },
                           {"sqrt"  , 29}  //корень из последнего числа
 };
 
-static map <string, int> REG = { {"ax", 1},
+map <string, int> REG = { {"ax", 1},
                           {"bx", 2},
                           {"cx", 3},
                           {"dx", 4}

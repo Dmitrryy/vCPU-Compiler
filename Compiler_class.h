@@ -8,6 +8,9 @@
 #include <iostream>
 
 #include "CmdFlagReg.h"
+#include "error_handling.h"
+
+
 
 struct Lexem {
 	int flag;
@@ -36,10 +39,14 @@ public: int parse();
 public: int semantic_analysis();
 public: int output(const char* fname_out);
 
-private: int search_code(const int code, const int* data, uint64_t nelem);
+private: int search_code(int code, const int* data, uint64_t nelem);
 private: int search_comments();
 
+friend CmpMistake;
+private: CmpMistake* mis;
+
 public: Compiler() :
+           //m_str_orig(NULL),
 		   m_str(NULL),
 		   m_point_str(NULL),
 		   m_lex(NULL),
@@ -48,7 +55,9 @@ public: Compiler() :
 	       m_progma_begin(0),
 		   m_nom_label(0),
 	       m_nom_cmd(0)
-	   {};
+	   {
+    mis = new CmpMistake();
+	   };
 };
 
 int Compiler::read(const char* fname_in) {
@@ -71,6 +80,8 @@ int Compiler::read(const char* fname_in) {
 	file.getline(m_str, m_len, '\0');
 
 	file.close();
+
+	mis->get_orig_str(m_str, m_len);
 
 	m_str[m_len] = '\0';
 
@@ -106,31 +117,35 @@ int Compiler::output(const char* fname_out) {
 int Compiler::search_comments() {
 
 	int stat = 0;
+	char* beg_comm = NULL;
 
 	for (int i = 0; i < m_len; i++) {
 
 		if (m_str[i] == '*' && stat == 1) {                //комментарии типа: * . . . *
-			m_str[i] = ' ';
+		    m_str[i] = ' ';
 			stat = 0;
 		}
 
-		if (m_str[i] == '*' && stat == 0)
-			stat = 1;
+		if (m_str[i] == '*' && stat == 0) {
+		    beg_comm = &(m_str[i]);
+
+            stat = 1;
+        }
 
 		if (stat == 1)
 			m_str[i] = ' ';
 
-		if (stat == 0 && i + 1 < m_len)                     //комментарии вида: //
+		if (stat == 0 && i + 1 < m_len)                     //комментарии вида: // . . . \n
 		    if (m_str[i] == '/' && m_str[i + 1] == '/') {
 
-		        for ( ; i < m_len && m_str[i] != '\n'; i++)
+		        for ( ; i < m_len && m_str[i] != '\n' && m_str[i] != '\0'; i++)
 		            m_str[i] = ' ';
 		    }
 	}
 
 
 	if (stat == 1)
-		assert(0); //не обнаружена закрывающая '*'
+	    mis->comment_mistake((uint64_t)(beg_comm - m_str), this);
 
 	return 0;
 }
@@ -165,7 +180,7 @@ int Compiler::processing() {
 	return 0;
 }
 
-int Compiler::search_code(const int code, const int* data, uint64_t nelem) {
+int Compiler::search_code(int code, const int* data, uint64_t nelem) {
 
 	for (uint64_t i = 0; i < nelem; i++) {
 		if (code == data[i])
