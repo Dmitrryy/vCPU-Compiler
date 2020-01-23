@@ -44,9 +44,9 @@ private: int search_comments();
 
 friend CmpMistake;
 private: CmpMistake* mis;
+private: void terminate();
 
 public: Compiler() :
-           //m_str_orig(NULL),
 		   m_str(NULL),
 		   m_point_str(NULL),
 		   m_lex(NULL),
@@ -106,10 +106,7 @@ int Compiler::output(const char* fname_out) {
 
 	out.close();
 
-	delete [] m_str;
-	delete [] m_point_str;
-	delete [] m_lex;
-	delete [] m_instr;
+	terminate();
 
 	return 0;
 }
@@ -119,18 +116,32 @@ int Compiler::search_comments() {
 	int stat = 0;
 	char* beg_comm = NULL;
 
-	for (int i = 0; i < m_len; i++) {
+	for (uint64_t i = 0; i < m_len; i++) {
 
-		if (m_str[i] == '*' && stat == 1) {                //комментарии типа: * . . . *
-		    m_str[i] = ' ';
-			stat = 0;
-		}
+        if (m_str[i] == '/' && i + 1 < m_len) // /*. . .
+            if (m_str[i + 1] == '*') {
+                if (stat == 0)
+                    beg_comm = &(m_str[i]);
 
-		if (m_str[i] == '*' && stat == 0) {
-		    beg_comm = &(m_str[i]);
+                if (stat == 1)
+                    mis->mistake(i, WAR_IN_COMMENTS00); //встречен блок комментарий внутри уже открытого блока
 
-            stat = 1;
-        }
+                stat = 1;
+            }
+
+        if (m_str[i] == '*' && i + 1 < m_len) // . . .*/
+            if (m_str[i + 1] == '/') {
+                if (stat == 1) {
+                    m_str[i] = m_str[i + 1] = ' ';
+                    stat = 0;
+                }
+                else {
+                    mis->mistake(i, MIS_IN_COMMENTS01); //символ не закрывает ни одного комментария
+                    terminate();
+
+                    exit(MIS_IN_COMMENTS01);
+                }
+            }
 
 		if (stat == 1)
 			m_str[i] = ' ';
@@ -144,8 +155,12 @@ int Compiler::search_comments() {
 	}
 
 
-	if (stat == 1)
-	    mis->comment_mistake((uint64_t)(beg_comm - m_str), m_len);
+	if (stat == 1) {
+        mis->mistake((uint64_t) (beg_comm - m_str), MIS_IN_COMMENTS00); // блок комментарий не закрыт
+        terminate();
+
+        exit(MIS_IN_COMMENTS00);
+    }
 
 	return 0;
 }
@@ -419,4 +434,27 @@ int Compiler::semantic_analysis() {
 		//cout << h << "  " << (int)m_instr[h].CMD_flag << "  " << (int)m_instr[h].CMD_code << "  " << (int64_t)m_instr[h].arg_flag << "  " << m_instr[h].integer << endl;
 
 	return 0;
+}
+
+void Compiler::terminate() {
+    if (m_str != NULL) {
+        delete [] m_str;
+        m_str = NULL;
+    }
+    if(m_point_str != NULL) {
+        delete [] m_point_str;
+        m_point_str = NULL;
+    }
+    if(m_lex != NULL) {
+        delete [] m_lex;
+        m_lex = NULL;
+    }
+    if(m_instr != NULL) {
+        delete [] m_instr;
+        m_instr = NULL;
+    }
+    if(mis != NULL) {
+        delete mis;
+        mis = NULL;
+    }
 }

@@ -13,23 +13,41 @@
 
 using namespace std;
 
-//#include "Compiler_class.h"
 #include "m_strtok.cpp"
-//#include "Compiler_class.h"
+
+
+#define MIS_IN_COMMENTS00 401
+#define MIS_IN_COMMENTS01 402
+#define WAR_IN_COMMENTS00 501
+
 
 class Compiler;
 
 class CmpMistake {
 
+private: void mistake (uint64_t begin_char, int code);
+
+private: int m_nom_war;
+private: int m_nom_err;
 
 private: char* m_str_orig;
+private: uint64_t max_len;
+
 private: void get_orig_str(char* str, uint64_t len);
 
-private: void comment_mistake (uint64_t begin_char, uint64_t max_len);
+private: void comment_mistake (uint64_t begin_char, int code);
 
 private: uint64_t nom_line (uint64_t nom_elem);
+private: void writer_position (char* str, uint64_t line, uint64_t nom_char_mis);
 
     friend Compiler;
+
+    CmpMistake():
+    m_nom_war(0),
+    m_nom_err(0),
+    m_str_orig(NULL),
+    max_len(0)
+    {};
 };
 
 void CmpMistake::get_orig_str(char* str, uint64_t len) {
@@ -37,33 +55,73 @@ void CmpMistake::get_orig_str(char* str, uint64_t len) {
     m_str_orig = new char [(len + 1) * sizeof(char)]();
     assert(m_str_orig != NULL);
     memmove(m_str_orig, str, (len + 1) * sizeof(char));
-
-    return;
+    max_len = len;
 }
 
-void CmpMistake::comment_mistake(uint64_t begin_char, uint64_t max_len) {
+void CmpMistake::mistake(uint64_t begin_char, int code) {
+
+    if (code == MIS_IN_COMMENTS00 || code == MIS_IN_COMMENTS01 || code == WAR_IN_COMMENTS00)
+        comment_mistake(begin_char, code);
+
+    //system("pause");
+}
+
+void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
 
     assert(begin_char < max_len);
 
     uint64_t line = nom_line(begin_char); //т.к. функция считает первую строчку нулевой
 
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+    if (code == MIS_IN_COMMENTS00) {
+        m_nom_err++;
 
-    cout << setw(4) << left << line << " : The comment is not closed." << endl;
-    cout << ". . ." << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
 
-    char* tmp = NULL;
-    cout << setw(4) << left << line << " : " << (tmp = m_strtok(m_str_orig, "\n", line)) << endl;
+        cout << "error" << " : The comment is not closed." << endl;
+        cout << ". . ." << endl;
 
-    for (uint64_t i = 0; i < begin_char - (uint64_t)(tmp - m_str_orig); i++)
-        cout << " ";
-    cout << "       ^~~~~" << endl;
+        writer_position(m_str_orig, line, begin_char);
 
-    cout << ". . ." << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
 
-    system("pause");
-    delete m_str_orig;
-    exit(0);
+        system("pause");
+        delete [] m_str_orig;
+    }
+
+    if (code == MIS_IN_COMMENTS01) {
+        m_nom_err++;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+
+        cout << "error" << " : The comment is not open." << endl;
+        cout << ". . ." << endl;
+
+        writer_position(m_str_orig, line, begin_char);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+
+        system("pause");
+        delete [] m_str_orig;
+    }
+
+    if (code == WAR_IN_COMMENTS00) {
+        m_nom_war++;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+
+        cout << "warning" << " : '/*' within block comment" << endl;
+        cout << ". . ." << endl;
+
+        char* tmp = new char [max_len + 1]();
+        assert(tmp != NULL);
+        memmove(tmp, m_str_orig, (max_len + 1) * sizeof(char));
+
+        writer_position(tmp, line, begin_char);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+
+        delete [] tmp;
+    }
 }
 
 uint64_t CmpMistake::nom_line(uint64_t nom_elem) {
@@ -75,4 +133,14 @@ uint64_t CmpMistake::nom_line(uint64_t nom_elem) {
             line++;
 
     return line;
+}
+
+void CmpMistake::writer_position(char *str, uint64_t line, uint64_t nom_char_mis) {
+
+    char * ptr_now = NULL;
+    cout << setw(4) << left << line << " : " << (ptr_now = m_strtok(str, "\n", line)) << endl;
+
+    for (uint64_t i = 0; i < nom_char_mis - (uint64_t) (ptr_now - str); i++)
+        cout << " ";
+    cout << "       ^~~~~" << endl;
 }

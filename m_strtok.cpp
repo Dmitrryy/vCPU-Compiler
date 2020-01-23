@@ -1,12 +1,12 @@
 #include <cstring>
 
-char* m_strtok (char* str, const char* skp, const unsigned int nom_lex_skip = 0);
+char* m_strtok (char* str, const char* skp, unsigned int nom_lex_skip = 0);
 int Skip (char** str, const char* skp);
 void SkipNon (char** str, const char* skp);
 int In (char s, const char* skp);
 
 
-char* m_strtok (char* str, const char* skp, const unsigned int nom_elem_skip) {
+char* m_strtok (char* str, const char* skp, unsigned int nom_elem_skip) {
     static char* prev_ptr = NULL;
 
     if (str != NULL)
