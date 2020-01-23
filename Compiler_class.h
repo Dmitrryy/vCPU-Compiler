@@ -145,7 +145,7 @@ int Compiler::search_comments() {
 
 
 	if (stat == 1)
-	    mis->comment_mistake((uint64_t)(beg_comm - m_str), this);
+	    mis->comment_mistake((uint64_t)(beg_comm - m_str), m_len);
 
 	return 0;
 }
