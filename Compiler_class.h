@@ -12,6 +12,7 @@
 
 
 
+
 struct Lexem {
 	int flag;
 
@@ -30,8 +31,8 @@ class Compiler {
 
 	uint16_t m_nom_label;
 
-private: map <string, int> Label_cr;
-private: map <string, int> func;
+private: map <string, int>* Label_cr;
+private: map <string, int>* func;
 
 public: int read(const char* fname_in);
 public: int processing();
@@ -43,6 +44,7 @@ private: int search_code(int code, const int* data, uint64_t nelem);
 private: int search_comments();
 
 friend CmpMistake;
+
 private: CmpMistake* mis;
 private: void terminate();
 
@@ -57,6 +59,9 @@ public: Compiler() :
 	       m_nom_cmd(0)
 	   {
     mis = new CmpMistake();
+
+    Label_cr = new map<string, int> ();
+    func = new map<string, int> ();
 	   };
 };
 
@@ -138,7 +143,6 @@ int Compiler::search_comments() {
                 else {
                     mis->mistake(i, MIS_IN_COMMENTS01); //символ не закрывает ни одного комментария
                     terminate();
-
                     exit(MIS_IN_COMMENTS01);
                 }
             }
@@ -182,7 +186,7 @@ int Compiler::processing() {
 		if (i % 10 == 0 && i != 0) {
 			char** tmp_str = (char**)realloc(m_point_str, (i + 10) * sizeof(char*));
 			if (tmp_str == NULL) {
-				delete[] m_point_str;
+				terminate();
 				assert(0); //ошибка realloc
 			}
 			m_point_str = tmp_str;
@@ -217,9 +221,16 @@ int Compiler::parse() {
 			//фиксация обьявления функции
 			if (result->second == CMD_func) {
 
-				func.emplace(m_point_str[i + 1], m_nom_cmd);
-				m_lex[i].flag = _SKIP_;
-				m_lex[++i].flag = _SKIP_;
+			    if (func->find(m_point_str[i + 1]) == func->end()) {
+                    func->emplace(m_point_str[i + 1], m_nom_cmd);
+                    m_lex[i].flag = _SKIP_;
+                    m_lex[++i].flag = _SKIP_;
+                }
+			    else {
+                    mis->mistake((uint64_t)(m_point_str[i + 1] - m_str), MULTIPLE_IDENTICAL_FUNC);
+                    terminate();
+                    exit(MULTIPLE_IDENTICAL_FUNC);
+			    }
 			}
 			//фиксация вызова функции
 			else if (result->second == CMD_call) {
@@ -245,17 +256,23 @@ int Compiler::parse() {
 		else {
 			char* mb_label = strstr(m_point_str[i], ":"); 
 			if (mb_label == NULL) {
-				
-				if (isdigit(*(m_point_str[i]))) {
 
-					int sum = 0;
-					for (int k = 0; m_point_str[i][k] != '\0'; k++)
-						sum = sum * 10 + m_point_str[i][k] - '0';
+			    int sum = 0;
+			    for (int k = 0; m_point_str[i][k] != '\0'; k++) {
+
+			        if (isdigit(m_point_str[i][k]))
+			            sum = sum * 10 + m_point_str[i][k] - '0';
+
+			        else {
+                        mis->mistake((uint64_t) (m_point_str[i] - m_str), UNDECLARED_IDENTIFIER);
+                        terminate();
+                        exit(UNDECLARED_IDENTIFIER);
+                    }
+
+			    }
 
 					m_lex[i] = { _NUM_, sum };
 					sum = 0;
-				}
-				else {assert(0); cout << i;} //встретилась неизвестная команда
 			}
 
 			else if (*(mb_label - 1) == '\0') {
@@ -264,76 +281,101 @@ int Compiler::parse() {
 			}
 			else if (*(mb_label + 1) == '\0') {
 				*(mb_label) = '\0';
-			
-				Label_cr.emplace(m_point_str[i], m_nom_cmd);
 
-				m_lex[i] = { _Label_create_, (int64_t)(m_nom_cmd) };
-				m_nom_label++;
+				if (Label_cr->find(m_point_str[i]) == Label_cr->end()) {
+                    Label_cr->emplace(m_point_str[i], m_nom_cmd);
+
+                    m_lex[i] = {_Label_create_, (int64_t) (m_nom_cmd)};
+                    m_nom_label++;
+                }
+				else {
+				    mis->mistake((uint64_t)(m_point_str[i] - m_str), MULTIPLE_IDENTICAL_LABELS_cr);
+				    terminate();
+				    exit(MULTIPLE_IDENTICAL_LABELS_cr);
+				}
 			}
-			else assert(0); //встретилось обозначение метки (":")
-							//но в неправильном написании
-							//до и после метки должен быть разделительный знак
+			else {
+			    mis->mistake((uint64_t) (m_point_str[i] - m_str), WRONG_CREATED_LABEL00); //встретилось обозначение метки (":")
+			    terminate();                                                                        //но в неправильном написании
+			    exit(WRONG_CREATED_LABEL00);                                                        //до и после метки должен быть разделительный знак
+			}
 		}
-		
-		//else assert(0);
-		}
+	}
 
 	uint64_t sit_begin = 0, sit_end = 0;
 
     //второй обход
-	for (int i = 0; i < m_len; i++) {
+	for (uint64_t i = 0; i < m_len; i++) {
 
 	    //разрешение меток
 		if (m_lex[i].flag == _Label_arg_) {
 
-			auto result = Label_cr.find(m_point_str[i] + 1);
+			auto result = Label_cr->find(m_point_str[i] + 1); //индекс i у лексемы и у указателя на на лексему (m_pointer_str) одинаков
 
-			if (result != Label_cr.end())
+			if (result != Label_cr->end())
 				m_lex[i] = { _Label_resolv_, result->second };
 
-			else assert(0); //проверить на ошибку в написании и существует ли вообще
-			                //метка под таким именем 
+			else {
+			    mis->mistake((uint64_t) (m_point_str[i] - m_str), WRONG_CREATED_LABEL01);
+			    terminate();
+			    exit(WRONG_CREATED_LABEL01);                     //проверить на ошибку в написании и существует ли вообще
+			}                                                    //метка под таким именем
 		}
 		//разрешение вызова функции
 		else if (m_lex[i].flag == _Func_) {
 
-			auto result = func.find(m_point_str[i + 1]);
-			//cout << i << "  " << m_point_str[i + 1] << endl;
+			auto result = func->find(m_point_str[i + 1]);
 
-			if (result != func.end())
+			if (result != func->end())
 				m_lex[i] = { _Func_resolv_, result->second };
 
-			else assert(0); //проверить на ошибку в написании и существует ли вообще
-			                //обьявление (тело) функции
+			else {
+			    mis->mistake((uint64_t)(m_point_str[i + 1] - m_str), BODY_OF_FUNC_NOTFOUND);
+			    terminate();
+			    exit(BODY_OF_FUNC_NOTFOUND);
+			    //проверить на ошибку в написании и существует ли вообще
+			}   //обьявление (тело) функции
 		}
 
 		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_begin) {
 
-			if (sit_begin != 0)
-				assert(0); //недопустимо x2 и больше begin!
+			if (sit_begin != 0) {
+                mis->mistake((uint64_t)(m_point_str[i] - m_str), MULTIPLE_IDENTICAL_BEGIN);
+                terminate();
+                exit(MULTIPLE_IDENTICAL_BEGIN);
+			}
 
 			sit_begin = i + 1;
 		}
 
 		if (m_lex[i].flag == _CMD_ && m_lex[i].integer == CMD_end) {
 
-			if (sit_end != 0)
-				assert(0); //недопустимо х2 и больше end!
+			if (sit_end != 0) {
+                mis->mistake((uint64_t)(m_point_str[i] - m_str), MULTIPLE_IDENTICAL_END);
+                terminate();
+                exit(MULTIPLE_IDENTICAL_END);
+			}
 
 			sit_end = i + 1;
 		}
 	}
-	if (sit_begin == 0)
-		assert(0); //не обнаружен begin
+	if (sit_begin == 0) {
+        mis->mistake(0, BEGIN_NOTFOUND);
+        terminate();
+        exit(BEGIN_NOTFOUND);
+	}
 
-	if (sit_end == 0)
-		assert(0); //не обнаружен end
-
-	if (sit_begin > sit_end)
-		assert(0); //begin находится после end
-
-	//for (int l = 0; l < m_len; l++)
-		//cout << l << "   " << m_lex[l].flag << "  " << m_lex[l].integer << endl;
+	if (sit_end == 0) {
+        mis->mistake(0, END_NOTFOUND);
+        terminate();
+        exit(END_NOTFOUND);
+    }
+	if (sit_begin > sit_end) {
+	    mis->mistake((uint64_t)(m_point_str[sit_begin - 1] - m_str), INVALID_LOCATION_BEGIN_END00);
+	    mis->mistake((uint64_t)(m_point_str[sit_end - 1] - m_str), INVALID_LOCATION_BEGIN_END01);
+	    terminate();
+	    exit(INVALID_LOCATION_BEGIN_END00);
+	}
 
 	return 0;
 }
@@ -345,7 +387,7 @@ int Compiler::semantic_analysis() {
 	
 	int cod = 0;
 
-	for (int i = 0; i < m_len; i++) {
+	for (uint64_t i = 0; i < m_len; i++) {
 
 		if (m_lex[i].flag == _CMD_) {
 
@@ -353,22 +395,33 @@ int Compiler::semantic_analysis() {
 			m_instr[k].CMD_code = cod = m_lex[i].integer;
 
 			//комманды без параметра
-			if (search_code(cod, CMD_with_NULL, NOM_CMD_WITH_NULL))
-				m_instr[k].arg_flag = _NULL_;
+			if (search_code(cod, CMD_with_NULL, NOM_CMD_WITH_NULL)) {
+
+			    if (i == m_len - 1 || (i < m_len && m_lex[i + 1].flag == _CMD_))
+                    m_instr[k].arg_flag = _NULL_;
+			    else {
+			        mis->mistake((uint64_t)(m_point_str[i] - m_str), INCORRECT_ARGUMENTS_NULL);
+			        terminate();
+			        exit(INCORRECT_ARGUMENTS_NULL);
+			    }
+            }
 
 			//команды с параметром REG
 			else if (search_code(cod, CMD_with_REG, NOM_CMD_WITH_REG)) {
 
-				m_instr[k].arg_flag = _REG_;
-				i++;
-				assert(i < m_len);
+                m_instr[k].arg_flag = _REG_;
+                i++;
+                assert(i < m_len);
 
-				if (m_lex[i].flag == _REG_)
-					m_instr[k].integer = m_lex[i].integer;
-				else 
-					assert(0); //после команды ожидается лексема с флагом REG
+                if (m_lex[i].flag == _REG_)
+                    m_instr[k].integer = m_lex[i].integer;
+                else {
+                    mis->mistake((uint64_t) (m_point_str[i - 1] - m_str), INCORRECT_ARGUMENTS_REG);
+                    terminate();
+                    exit(INCORRECT_ARGUMENTS_REG);
+                }
+            }
 
-			}
 			//команды с параметром REG или NUM
 			else if (search_code(cod, CMD_with_REGandNUM, NOM_CMD_WITH_REGandNUM)) {
 
@@ -385,9 +438,13 @@ int Compiler::semantic_analysis() {
 					m_instr[k].arg_flag = _NUM_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
-				else assert(0); //после команды с параметром REG или NUM 
-								//ни первое, ни второе
+				else {
+				    mis->mistake((uint64_t)(m_point_str[i - 1] - m_str), INCORRECT_ARGUMENTS_REG_or_NUM);
+				    terminate();
+				    exit(INCORRECT_ARGUMENTS_REG_or_NUM);  //после команды с параметром REG или NUM
+				}
 			}
+
 			//Команды "прыжка" (jmp и тому подобное)
 			else if (search_code(cod, CMD_with_Label, NOM_CMD_WITH_LABEL)) {
 
@@ -397,8 +454,11 @@ int Compiler::semantic_analysis() {
 					m_instr[k].arg_flag = _Label_resolv_;
 					m_instr[k].integer = m_lex[i].integer;
 				}
-				else assert(0); //после команды прыжка идет не метка! куда прыгать?
-
+				else {
+				    mis->mistake((uint64_t)(m_point_str[i - 1] - m_str), INCORRECT_ARGUMENTS_LABEL);
+				    terminate();
+				    exit(INCORRECT_ARGUMENTS_LABEL); //после команды прыжка идет не метка! куда прыгать?
+				}
 			}
 			k++;
 		}
@@ -425,8 +485,10 @@ int Compiler::semantic_analysis() {
 
 			k++;
 		}
-		else
-			assert(0); //встречен неизвестный флаг лексемы
+		else {
+		    //cout << (int)m_lex[i].flag << endl;
+            assert(0); //встречен неизвестный флаг лексемы
+        }
 	}
 	m_len = k;
 
@@ -456,5 +518,13 @@ void Compiler::terminate() {
     if(mis != NULL) {
         delete mis;
         mis = NULL;
+    }
+    if (Label_cr != NULL) {
+        delete Label_cr;
+        Label_cr = NULL;
+    }
+    if (func != NULL) {
+        delete func;
+        func = NULL;
     }
 }
