@@ -45,7 +45,7 @@ map <string, int> REG = { {"ax", 1},
 
 
 /**
-Для добавления функции:
+Для добавления функции: (устарело)
 1. Добавить имя функции и ее код в массивы со всеми функциями (CMD_name и CMD_num)
 2. ++cmd_max
 3. Добавить код функции в нужный массив (в зависимости от ее параметров)
@@ -57,8 +57,8 @@ map <string, int> REG = { {"ax", 1},
 */
 
 //#define cmd_max  10
-#define flag_max 7
-#define reg_max  4
+//#define flag_max 7
+//#define reg_max  4
 
 #define _CMD_          101
 #define _NUM_          102

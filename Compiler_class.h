@@ -29,8 +29,6 @@ class Compiler {
 	uint64_t m_len;
 	uint64_t m_progma_begin;
 
-	uint16_t m_nom_label;
-
 private: map <string, int>* Label_cr;
 private: map <string, int>* func;
 
@@ -55,7 +53,6 @@ public: Compiler() :
 		   m_instr(NULL),
 		   m_len(0),
 	       m_progma_begin(0),
-		   m_nom_label(0),
 	       m_nom_cmd(0)
 	   {
     mis = new CmpMistake();
@@ -141,9 +138,9 @@ int Compiler::search_comments() {
                     stat = 0;
                 }
                 else {
-                    mis->mistake(i, MIS_IN_COMMENTS01); //символ не закрывает ни одного комментария
+                    mis->mistake(i, COMMENT_ISNT_OPEN); //символ не закрывает ни одного комментария
                     terminate();
-                    exit(MIS_IN_COMMENTS01);
+                    exit(COMMENT_ISNT_OPEN);
                 }
             }
 
@@ -160,10 +157,10 @@ int Compiler::search_comments() {
 
 
 	if (stat == 1) {
-        mis->mistake((uint64_t) (beg_comm - m_str), MIS_IN_COMMENTS00); // блок комментарий не закрыт
+        mis->mistake((uint64_t) (beg_comm - m_str), COMMENT_ISNT_CLOSED); // блок комментарий не закрыт
         terminate();
 
-        exit(MIS_IN_COMMENTS00);
+        exit(COMMENT_ISNT_CLOSED);
     }
 
 	return 0;
@@ -286,7 +283,6 @@ int Compiler::parse() {
                     Label_cr->emplace(m_point_str[i], m_nom_cmd);
 
                     m_lex[i] = {_Label_create_, (int64_t) (m_nom_cmd)};
-                    m_nom_label++;
                 }
 				else {
 				    mis->mistake((uint64_t)(m_point_str[i] - m_str), MULTIPLE_IDENTICAL_LABELS_cr);
@@ -397,7 +393,7 @@ int Compiler::semantic_analysis() {
 			//комманды без параметра
 			if (search_code(cod, CMD_with_NULL, NOM_CMD_WITH_NULL)) {
 
-			    if (i == m_len - 1 || (i < m_len && m_lex[i + 1].flag == _CMD_))
+			    if (i == m_len - 1 || (i < m_len && m_lex[i + 1].flag == _CMD_) || (i < m_len && m_lex[i + 1].flag == _SKIP_) || (i < m_len && m_lex[i + 1].flag == _Label_create_))
                     m_instr[k].arg_flag = _NULL_;
 			    else {
 			        mis->mistake((uint64_t)(m_point_str[i] - m_str), INCORRECT_ARGUMENTS_NULL);
@@ -485,10 +481,12 @@ int Compiler::semantic_analysis() {
 
 			k++;
 		}
-		else {
-		    //cout << (int)m_lex[i].flag << endl;
-            assert(0); //встречен неизвестный флаг лексемы
+		else if (m_lex[i].flag == _NUM_ || m_lex[i].flag == _REG_ || m_lex[i].flag == _NULL_){
+		    mis->mistake((uint64_t)(m_point_str[i] - m_str), UNKNOWN_ARGUMENT);
+		    terminate();
+		    exit(UNKNOWN_ARGUMENT);
         }
+		else {assert(0);}
 	}
 	m_len = k;
 

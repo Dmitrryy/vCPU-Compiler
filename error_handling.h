@@ -16,8 +16,8 @@ using namespace std;
 #include "m_strtok.cpp"
 
 
-#define MIS_IN_COMMENTS00 401
-#define MIS_IN_COMMENTS01 402
+#define COMMENT_ISNT_CLOSED 401
+#define COMMENT_ISNT_OPEN 402
 
 #define WAR_IN_COMMENTS00 501
 
@@ -40,7 +40,9 @@ using namespace std;
 #define INCORRECT_ARGUMENTS_LABEL 1102
 #define INCORRECT_ARGUMENTS_NULL 1103
 
-#define UNkNOWN_TOKEN_FLAG 1200
+#define UNKNOWN_ARGUMENT 1201
+
+#define UNKNOWN_TOKEN_FLAG 1200
 
 
 class Compiler;
@@ -84,13 +86,13 @@ void CmpMistake::get_orig_str(char* str, uint64_t len) {
 
 void CmpMistake::mistake(uint64_t begin_char, int code) {
 
-    if (code == MIS_IN_COMMENTS00 || code == MIS_IN_COMMENTS01 || code == WAR_IN_COMMENTS00)
+    if (code == COMMENT_ISNT_CLOSED || code == COMMENT_ISNT_OPEN || code == WAR_IN_COMMENTS00)
         comment_mistake(begin_char, code);
 
     if (code == UNDECLARED_IDENTIFIER || code == WRONG_CREATED_LABEL00 || code == WRONG_CREATED_LABEL01 || code == MULTIPLE_IDENTICAL_LABELS_cr || code == MULTIPLE_IDENTICAL_FUNC|| code == BODY_OF_FUNC_NOTFOUND || code == MULTIPLE_IDENTICAL_BEGIN || code == MULTIPLE_IDENTICAL_END || code == BEGIN_NOTFOUND || code == END_NOTFOUND || code == INVALID_LOCATION_BEGIN_END00 || code == INVALID_LOCATION_BEGIN_END01)
         parse_mistake(begin_char, code);
 
-    if (code == INCORRECT_ARGUMENTS_REG_or_NUM || code == INCORRECT_ARGUMENTS_REG || code == INCORRECT_ARGUMENTS_LABEL || code == INCORRECT_ARGUMENTS_NULL)
+    if (code == INCORRECT_ARGUMENTS_REG_or_NUM || code == INCORRECT_ARGUMENTS_REG || code == INCORRECT_ARGUMENTS_LABEL || code == INCORRECT_ARGUMENTS_NULL || code == UNKNOWN_ARGUMENT)
         semantic_mistake(begin_char, code);
 
     //system("pause");
@@ -102,7 +104,7 @@ void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
 
     uint64_t line = nom_line(begin_char);
 
-    if (code == MIS_IN_COMMENTS00) {
+    if (code == COMMENT_ISNT_CLOSED) {
         m_nom_err++;
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
@@ -118,7 +120,7 @@ void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
         delete [] m_str_orig;
     }
 
-    if (code == MIS_IN_COMMENTS01) {
+    if (code == COMMENT_ISNT_OPEN) {
         m_nom_err++;
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
@@ -415,6 +417,22 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
         system("pause");
         delete [] m_str_orig;
     }
+
+    if (code == UNKNOWN_ARGUMENT) {
+        m_nom_err++;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+
+        cout << "error" << " : unknown argument:" << endl;
+        cout << ". . ." << endl;
+
+        writer_position(m_str_orig, line, begin_char);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+
+        system("pause");
+        delete [] m_str_orig;
+    }
 }
 
 uint64_t CmpMistake::nom_line(uint64_t nom_elem) {
@@ -437,7 +455,8 @@ void CmpMistake::writer_position(char *str, uint64_t line, uint64_t nom_char_mis
     char * ptr_now = NULL;
     cout << setw(4) << left << line << " : " << (ptr_now = m_strtok(tmp, "\n", line)) << endl;
 
-    for (uint64_t i = 0; i < nom_char_mis - (uint64_t)(ptr_now - tmp); i++)
+
+    for (uint64_t i = 0; i < nom_char_mis - (uint64_t) (ptr_now - tmp); i++)
         cout << " ";
     cout << "       ^~~~~" << endl;
 
