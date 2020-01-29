@@ -378,6 +378,7 @@ int Compiler::parse() {
 
 int Compiler::semantic_analysis() {
 
+    int stat = 0;
 	m_instr = new Instruction[m_len]();
 	int k = 0;
 	
@@ -400,6 +401,7 @@ int Compiler::semantic_analysis() {
 			        terminate();
 			        exit(INCORRECT_ARGUMENTS_NULL);
 			    }
+			    stat += mis->check_line_style((uint64_t)(m_point_str[i] - m_str), 0, LINE_NULL);
             }
 
 			//команды с параметром REG
@@ -416,6 +418,7 @@ int Compiler::semantic_analysis() {
                     terminate();
                     exit(INCORRECT_ARGUMENTS_REG);
                 }
+                stat += mis->check_line_style((uint64_t)(m_point_str[i - 1] - m_str), (uint64_t)(m_point_str[i] - m_str), LINE_ONE);
             }
 
 			//команды с параметром REG или NUM
@@ -439,6 +442,7 @@ int Compiler::semantic_analysis() {
 				    terminate();
 				    exit(INCORRECT_ARGUMENTS_REG_or_NUM);  //после команды с параметром REG или NUM
 				}
+                stat += mis->check_line_style((uint64_t)(m_point_str[i - 1] - m_str), (uint64_t)(m_point_str[i] - m_str), LINE_ONE);
 			}
 
 			//Команды "прыжка" (jmp и тому подобное)
@@ -455,6 +459,7 @@ int Compiler::semantic_analysis() {
 				    terminate();
 				    exit(INCORRECT_ARGUMENTS_LABEL); //после команды прыжка идет не метка! куда прыгать?
 				}
+                stat += mis->check_line_style((uint64_t)(m_point_str[i - 1] - m_str), (uint64_t)(m_point_str[i] - m_str), LINE_ONE);
 			}
 			k++;
 		}
@@ -490,8 +495,15 @@ int Compiler::semantic_analysis() {
 	}
 	m_len = k;
 
+	if (stat != 0) {
+	    terminate();
+	    system("pause");
+	    exit(1);
+	}
 	//for (int h = 0; h < m_len; h++)
 		//cout << h << "  " << (int)m_instr[h].CMD_flag << "  " << (int)m_instr[h].CMD_code << "  " << (int64_t)m_instr[h].arg_flag << "  " << m_instr[h].integer << endl;
+
+
 
 	return 0;
 }

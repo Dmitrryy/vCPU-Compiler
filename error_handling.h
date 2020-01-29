@@ -45,6 +45,9 @@ using namespace std;
 #define UNKNOWN_TOKEN_FLAG 1200
 
 
+#define LINE_NULL 111
+#define LINE_ONE 112
+
 class Compiler;
 
 class CmpMistake {
@@ -63,7 +66,10 @@ private: void comment_mistake (uint64_t begin_char, int code);
 private: void parse_mistake (uint64_t begin_char, int code);
 private: void semantic_mistake (uint64_t begin_char, int code);
 
-private: uint64_t nom_line (uint64_t nom_elem);
+private: int check_line_style (uint64_t begin_char_1, uint64_t begin_char_2, int code_place);
+private: uint64_t line_now;
+
+private: uint64_t nom_line (char* str, uint64_t nom_elem);
 private: void writer_position (char* str, uint64_t line, uint64_t nom_char_mis);
 
     friend Compiler;
@@ -72,7 +78,8 @@ private: void writer_position (char* str, uint64_t line, uint64_t nom_char_mis);
     m_nom_war(0),
     m_nom_err(0),
     m_str_orig(NULL),
-    max_len(0)
+    max_len(0),
+    line_now(1)
     {};
 };
 
@@ -102,14 +109,16 @@ void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
 
     assert(begin_char < max_len);
 
-    uint64_t line = nom_line(begin_char);
+    uint64_t line = nom_line(m_str_orig, begin_char);
 
     if (code == COMMENT_ISNT_CLOSED) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : The comment is not closed." << endl;
+        cout << " The comment is not closed." << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -123,9 +132,11 @@ void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
     if (code == COMMENT_ISNT_OPEN) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : The comment is not open." << endl;
+        cout << " The comment is not open." << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -139,9 +150,11 @@ void CmpMistake::comment_mistake(uint64_t begin_char, int code) {
     if (code == WAR_IN_COMMENTS00) {
         m_nom_war++;
 
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+        cout << "warning:";
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
 
-        cout << "warning" << " : '/*' within block comment" << endl;
+        cout << " '/*' within block comment" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -154,14 +167,16 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
 
     assert(begin_char < max_len);
 
-    uint64_t line = nom_line(begin_char);
+    uint64_t line = nom_line(m_str_orig, begin_char);
 
     if (code == UNDECLARED_IDENTIFIER) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : use of undeclared identifier." << endl;
+        cout << " use of undeclared identifier." << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -175,9 +190,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == WRONG_CREATED_LABEL00) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : incorrect label creation." << endl;
+        cout << " incorrect label creation." << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -195,9 +212,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == WRONG_CREATED_LABEL01) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : not discovered the destination of the jump." << endl;
+        cout << " not discovered the destination of the jump." << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -211,9 +230,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == MULTIPLE_IDENTICAL_LABELS_cr) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : multiple identical labels. second is:" << endl;
+        cout << " multiple identical labels. second is:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -227,9 +248,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == MULTIPLE_IDENTICAL_FUNC) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : multiple identical function declarations. second is:" << endl;
+        cout << " multiple identical function declarations. second is:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -243,9 +266,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == BODY_OF_FUNC_NOTFOUND) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : not found the body of the function" << endl;
+        cout << " not found the body of the function" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -259,9 +284,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == MULTIPLE_IDENTICAL_BEGIN) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : multiple identical 'begin'. second is:" << endl;
+        cout << " multiple identical 'begin'. second is:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -275,9 +302,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == MULTIPLE_IDENTICAL_END) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : multiple identical 'end'. second is:" << endl;
+        cout << " multiple identical 'end'. second is:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -291,9 +320,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == BEGIN_NOTFOUND) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : not found the 'begin'" << endl;
+        cout << " not found the 'begin'" << endl;
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
 
@@ -304,9 +335,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == END_NOTFOUND) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : not found the 'end'" << endl;
+        cout << " not found the 'end'" << endl;
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
 
@@ -317,9 +350,11 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     if (code == INVALID_LOCATION_BEGIN_END00) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : invalid location 'begin' and 'end':" << endl;
+        cout << " invalid location 'begin' and 'end':" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -328,7 +363,7 @@ void CmpMistake::parse_mistake(uint64_t begin_char, int code) {
     }
 
     if (code == INVALID_LOCATION_BEGIN_END01) {
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
         cout << ". . ." << endl;
         writer_position(m_str_orig, line, begin_char);
@@ -344,14 +379,16 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
 
     assert(begin_char < max_len);
 
-    uint64_t line = nom_line(begin_char);
+    uint64_t line = nom_line(m_str_orig, begin_char);
 
     if (code == INCORRECT_ARGUMENTS_REG) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : incorrect argument:" << endl;
+        cout << " incorrect argument:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -367,9 +404,11 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
     if (code == INCORRECT_ARGUMENTS_REG_or_NUM) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : incorrect argument:" << endl;
+        cout << " incorrect argument:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -385,9 +424,11 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
     if (code == INCORRECT_ARGUMENTS_LABEL) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : incorrect argument:" << endl;
+        cout << " incorrect argument:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -403,9 +444,11 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
     if (code == INCORRECT_ARGUMENTS_NULL) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : incorrect argument:" << endl;
+        cout << "incorrect argument:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -421,9 +464,11 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
     if (code == UNKNOWN_ARGUMENT) {
         m_nom_err++;
 
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+        cout << "error:";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
 
-        cout << "error" << " : unknown argument:" << endl;
+        cout << " unknown argument:" << endl;
         cout << ". . ." << endl;
 
         writer_position(m_str_orig, line, begin_char);
@@ -435,15 +480,74 @@ void CmpMistake::semantic_mistake(uint64_t begin_char, int code) {
     }
 }
 
-uint64_t CmpMistake::nom_line(uint64_t nom_elem) {
+int CmpMistake::check_line_style(uint64_t begin_char_1, uint64_t begin_char_2, int code_place) {
+
+    uint64_t line1 = nom_line(m_str_orig, begin_char_1);
+    uint64_t line2 = nom_line(m_str_orig, begin_char_2);
+    int stat = 0;
+
+    if (code_place == LINE_NULL) {
+
+        if (line1 >= line_now) {
+            line_now = line1 + 1;
+            return 0;
+        }
+        else {
+            m_nom_err++;
+            line_now = line1 + 1;
+
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+            cout << "error:";
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
+
+            cout << " CODEE STYLEEE!!!!!:" << endl;
+            cout << ". . ." << endl;
+
+            writer_position(m_str_orig, line1, begin_char_1);
+
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+
+            return 1;
+        }
+    }
+
+    if (code_place == LINE_ONE) {
+        if (line1 == line2 && line1 >= line_now) {
+            line_now = line1 + 1;
+            return 0;
+        }
+        else {
+            m_nom_err++;
+            line_now = line2 + 1;
+
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY);
+            cout << "error:";
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
+
+            cout << " CODEE STYLEEE!!!!!:" << endl;
+            cout << ". . ." << endl;
+
+            writer_position(m_str_orig, line1, begin_char_1);
+            writer_position(m_str_orig, line2, begin_char_2);
+
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0 | 15);
+
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+uint64_t CmpMistake::nom_line(char* str, uint64_t nom_elem) {
 
     uint64_t line = 0;
 
     for(uint64_t i = 0; i < nom_elem; i++)
-        if (m_str_orig[i] == '\n')
+        if (str[i] == '\n')
             line++;
 
-    return line;
+    return line + 1;
 }
 
 void CmpMistake::writer_position(char *str, uint64_t line, uint64_t nom_char_mis) {
@@ -453,7 +557,7 @@ void CmpMistake::writer_position(char *str, uint64_t line, uint64_t nom_char_mis
     memmove(tmp, str, (max_len + 1) * sizeof(char));
 
     char * ptr_now = NULL;
-    cout << setw(4) << left << line << " : " << (ptr_now = m_strtok(tmp, "\n", line)) << endl;
+    cout << setw(4) << left << line << " : " << (ptr_now = m_strtok(tmp, "\n", line - 1)) << endl;
 
 
     for (uint64_t i = 0; i < nom_char_mis - (uint64_t) (ptr_now - tmp); i++)
