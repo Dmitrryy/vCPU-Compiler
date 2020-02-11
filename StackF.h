@@ -311,7 +311,7 @@ void terminate(int signum) {
 		if (del->ptr != NULL)
 			VirtualFree(del->ptr, 0, MEM_RELEASE);
 	}
-
+    system("pause");
 	exit(signum);
 }
 

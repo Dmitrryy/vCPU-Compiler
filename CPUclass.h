@@ -12,6 +12,8 @@
 #include "StackF.h"
 #include "CmdFlagReg.h"
 
+#define SIZE_RAM 200
+
 
 class CPU {
 private: uint64_t m_nom_cmd;
@@ -21,10 +23,11 @@ private: const char* m_fname;
 
 private: Instruction* instr;
 
-public: void OK(const int stat);
+public: void OK(int stat);
 public: void dump();
 
 private: double m_reg[4];
+private: double* m_RAM;
 
 public: int preparer(const char* fname);
 public: int executor();
@@ -38,6 +41,8 @@ public: int executor();
 	  {
           for (int i = 0; i < 4; i++)
               m_reg[i] = 0;
+
+          m_RAM = new double[SIZE_RAM]();
       };
 
 	  ~CPU() {
@@ -46,6 +51,8 @@ public: int executor();
 	      if (instr != NULL) {
 	          delete [] instr;
 	          instr = NULL;
+
+	          delete [] m_RAM;
 	      }
 	  }
 };
@@ -77,6 +84,8 @@ int CPU::preparer(const char* fname) {
 }
 
 int CPU::executor() {
+
+    uint32_t time_beg = clock();
 
     OK(BEFORE_EXECUTOR);
 
@@ -147,23 +156,25 @@ int CPU::executor() {
 				break;
 
 			case CMD_jaz:
-				if (m_st->Top() > 0)
+                //cout << instr[m_current_cmd].integer << endl;
+				if (m_st->Pop() > 0)
                     m_current_cmd = instr[m_current_cmd].integer - 1;
+				//system("pause");
 				break;
 
 			case CMD_jlz:
-				if (m_st->Top() < 0)
+				if (m_st->Pop() < 0)
                     m_current_cmd = instr[m_current_cmd].integer - 1;
 				break;
 
 			case CMD_jz:
-				if (m_st->Top() == 0)
+				if (m_st->Pop() == 0)
                     m_current_cmd = instr[m_current_cmd].integer - 1;
 				break;
 
 			case CMD_dump:
 				m_st->Dump();
-				system("pause");
+				//system("pause");
 				break;
 
 			case CMD_end:
@@ -191,14 +202,39 @@ int CPU::executor() {
 
 			} //end switch
 		}
+		else if (instr[m_current_cmd].CMD_flag == _CMD_RAM_) {
+
+            switch (instr[m_current_cmd].CMD_code) {
+                case CMD_mpush:
+
+                    assert(m_st->Top() < SIZE_RAM);
+
+                    m_RAM[(int)m_st->Pop()] = m_st->Pop();
+
+                    break;
+
+                case CMD_mpop:
+
+                    assert(m_st->Top() < SIZE_RAM);
+
+                    m_st->Push(m_RAM[(int)m_st->Pop()]);
+
+                    break;
+            }
+		}
 		else {
             m_st->Destroy();
             m_ret->Destroy();
+
+            //system("pause");
 
             OK(ERROR_EXECUTE);
         }
 
 	}//end for( ; ; )
+	cout << endl << "time = " << (clock() - time_beg)/1000.0 << endl;
+	system("pause");
+
 	return 0;
 }
 
@@ -244,7 +280,7 @@ void CPU::dump() {
     system("pause");
 }
 
-void CPU::OK(const int stat) {
+void CPU::OK(int stat) {
 
     if (stat == 0) {
 
