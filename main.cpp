@@ -1,22 +1,23 @@
 #pragma warning(disable : 4996)
 
-#include "Compiler_class.h"
+#include "Compiler.h"
 
 
 int main(int argc, char* argv[]) {
     Compiler sours;
 
-    sours.read(argv[1]);
+    char* text = sours.read(argv[1]);
 
-    sours.processing();
+    ptl* point_to_lex = sours.preprocessor(text);
 
-    sours.parse();
+    Lexem* lex = sours.parse(point_to_lex);
 
-    sours.semantic_analysis();
+    Instruction* inst = sours.semantic_analysis(lex, point_to_lex);
 
-    sours.output(argv[2]);
+    sours.output(inst, argv[2]);
 
-    //system("pause");
+    cout << endl << "time = " << clock() / 1000.0 << endl;
+    system("pause");
 
     return 0;
 }
